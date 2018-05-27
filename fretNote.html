@@ -1,0 +1,296 @@
+<!DOCTYPE html lang="ja">
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>フレットの音名把握トレーニング</title>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.5.2/animate.min.css">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css">
+  <style>
+    #site-title {
+      margin: 8px 0px;
+      padding: 4px 0;
+      border-radius: 8px;
+      background-color: #e9ecef;
+      text-align: center;
+    }
+
+    /** 
+      テキストとアイコンの高さが合わないための調整
+      bootstrap4 bodyに line-height: 1.5が設定されていて、高さが合わなくなる */
+    .fa, .fab, .fal, .far, .fas {
+      line-height: 1.5;
+    }
+
+    #backdrop {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      background-color: #000;
+      opacity: .3;
+      z-index: 2;
+    }
+    #start-button {
+      /* position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1000; */
+    }
+
+    #correct-icon,
+    #incorrect-icon {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      transition: 1s;
+    }
+    #correct-icon.active,
+    #incorrect-icon.active { opacity: 1; }
+    #correct-icon {
+      color: red;
+      font-size: 150px;
+    }
+    #incorrect-icon {
+      color: blue;
+      font-size: 170px;
+    }
+
+    .disabled,
+    .disabled button {
+      cursor: not-allowed !important;
+      pointer-events: none;
+    }
+
+
+    #fret-info-container,
+    #fret-num-container,
+    #note-button-container {
+      display: flex;
+      flex-wrap: wrap;
+
+    }
+    .fret-info,
+    .fret-num, 
+    .note-button {
+      width: calc(100% / 13);
+      padding: 15px;
+      text-align: center;
+    }
+
+    .fret-info {
+      font-size: 140%;
+      /* color: transparent; */
+    }
+    /** 中身が空の場合に、高さがなくなってしまう対処 */
+    .fret-info:empty::after {
+      content: ".";
+      visibility: hidden;
+    }
+    [data-status="finished"] {
+      background-color: #6c757d;
+      color: #fff;
+    }
+    [data-correct] {
+      background-color: #28a745;
+      color: #fff;
+    }
+    [data-incorrect] {
+      background-color: #dc3545;
+      color: #fff;
+    }
+
+
+    /** 参考：　https://stackoverflow.com/questions/35678353/how-to-create-collapsed-borders-around-flex-items-and-their-container */
+    #fret-info-container,
+    .fret-info {
+      box-sizing: border-box;
+      border-style: solid;
+      border-color: rgba(0, 0, 0, .3);
+    }
+    #fret-info-container { border-width: 2px 0 0 2px }
+    .fret-info { border-width: 0 2px 2px 0 }
+
+  </style>
+</head>
+
+<body>
+  <div class="container">
+
+    <h1 id="site-title">フレットの音名把握トレーニング</h1>
+    <div class="text-center my-2">
+      <button type="button" class="btn btn-primary" id="start-button">スタート</button>
+    </div>
+    <i class="far fa-circle" id="correct-icon"></i>
+    <i class="fas fa-times" id="incorrect-icon"></i>
+    <div id="fret-info-container"></div>
+    <div id="fret-num-container"></div>
+    <div id="note-button-container" class="btn-group"></div>
+    <!--<div id="backdrop" class="show"></div>-->
+  </div>
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+  <script src="http://underscorejs.org/underscore.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/notify/0.4.2/notify.js"></script>
+  <script>
+    const STATUS = {
+      CURRENT: 'current',
+      FINISHED: 'finished'
+    };
+
+
+    var allNote = {
+      'string1': {
+        'fret0': 'E', 'fret1': 'F', 'fret2': 'G♭', 'fret3': 'G', 'fret4': 'A♭', 'fret5': 'A',
+        'fret6': 'B♭', 'fret7': 'B', 'fret8': 'C', 'fret9': 'D♭', 'fret10': 'D', 'fret11': 'E♭', 'fret12': 'E'
+      },
+      'string2': {
+        'fret0': 'B', 'fret1': 'C', 'fret2': 'D♭', 'fret3': 'D', 'fret4': 'E♭', 'fret5': 'E',
+        'fret6': 'F', 'fret7': 'G♭', 'fret8': 'G', 'fret9': 'A♭', 'fret10': 'A', 'fret11': 'B♭', 'fret12': 'B'
+      },
+      'string3': {
+        'fret0': 'G', 'fret1': 'A♭', 'fret2': 'A', 'fret3': 'B♭', 'fret4': 'B', 'fret5': 'C',
+        'fret6': 'D♭', 'fret7': 'D', 'fret8': 'E♭', 'fret9': 'E', 'fret10': 'F', 'fret11': 'G♭', 'fret12': 'G'
+      },
+      'string4': {
+        'fret0': 'D', 'fret1': 'E♭', 'fret2': 'E', 'fret3': 'F', 'fret4': 'G♭', 'fret5': 'G',
+        'fret6': 'A♭', 'fret7': 'A', 'fret8': 'B♭', 'fret9': 'B', 'fret10': 'C', 'fret11': 'D♭', 'fret12': 'D'
+      },
+      'string5': {
+        'fret0': 'A', 'fret1': 'B♭', 'fret2': 'B', 'fret3': 'C', 'fret4': 'D♭', 'fret5': 'D',
+        'fret6': 'E♭', 'fret7': 'E', 'fret8': 'F', 'fret9': 'G♭', 'fret10': 'G', 'fret11': 'A♭', 'fret12': 'A'
+      },
+      'string6': {
+        'fret0': 'E', 'fret1': 'F', 'fret2': 'G♭', 'fret3': 'G', 'fret4': 'A♭', 'fret5': 'A',
+        'fret6': 'B♭', 'fret7': 'B', 'fret8': 'C', 'fret9': 'D♭', 'fret10': 'D', 'fret11': 'E♭', 'fret12': 'E'
+      }
+    };
+    var noteButtonArray = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'];
+    var stringNumArray = ['string1', 'string2', 'string3', 'string4', 'string5', 'string6'];
+    var fretNumArray = ['fret0', 'fret1', 'fret2', 'fret3', 'fret4', 'fret5', 'fret6', 'fret7', 'fret8', 'fret9', 'fret10', 'fret11', 'fret12'];
+    var fretInfoArray = _.reduce(stringNumArray, function(fretInfoTemp, stringNumElement){
+        _.each(fretNumArray, function(fretNumElement) {
+          var note = allNote[stringNumElement][fretNumElement];
+          fretInfoTemp.push({
+              "string": stringNumElement,
+              "fret": fretNumElement,
+              "note": note,
+            });
+            var $fretInfo = $(`<div class="fret-info" data-string="${stringNumElement}" data-fret="${fretNumElement}" data-note="${note}"></div>`);
+            $('#fret-info-container').append($fretInfo);
+          });
+       return fretInfoTemp; 
+      }, []);
+    console.log(fretInfoArray);
+    fretInfoArray = _.shuffle(fretInfoArray);
+    console.log(fretInfoArray);
+    _.each(fretNumArray, function(fretNumElement) {
+      var fretNum = fretNumElement.replace(/[^0-9^\.]/g, "");
+      fretNum = parseInt(fretNum, 10);
+      var $fretNum = $(`<div class="fret-num">${fretNum}</div>`);
+      $('#fret-num-container').append($fretNum);
+    });
+    _.each(noteButtonArray, function(noteButtonElement) {
+      var $noteButton = $(`<button type="button" class="btn btn-outline-secondary note-button">${noteButtonElement}</button>`);
+      $('#note-button-container').append($noteButton);
+    });
+
+    // pointer-events: none;でも代用できるけど、cursor: not-allowed; が効かなくなってしまうため。
+    // イベントの優先順位を考慮する必要があるため、pointer-events: noneを使用する。
+    // $(document).on('click', '.disabled', function(){
+    //   return false;
+    // })
+
+    $(document).ready(function(){
+
+      // スタート前は音名ボタンは押せないようにする
+      $('#note-button-container').addClass('disabled');
+
+      $('#start-button').on('click', function(e) {
+        $(this).addClass('disabled');
+        // 最初の一つ目をスタート
+        nextQuestion();
+        // 音名ボタンを押せるようにする。
+        $('#note-button-container').removeClass('disabled');
+
+      });
+
+      function nextQuestion() {
+        var fretInfo = fretInfoArray.pop();
+        $(`[data-string=${fretInfo.string}][data-fret=${fretInfo.fret}]`).html('<i class="fas fa-question"></i>');
+        $(`[data-string=${fretInfo.string}][data-fret=${fretInfo.fret}]`).attr('data-status', STATUS.CURRENT);
+      }
+
+      $('.note-button').on('click', function(e) {
+        var currentNote = $(`[data-status=${STATUS.CURRENT}]`).attr('data-note');
+        var clickNote = $(this).text().trim();
+        // 正解
+        if (clickNote == currentNote) {
+          $('#correct-icon').addClass('active');
+          $(`[data-status=${STATUS.CURRENT}]`).attr('data-correct', '');
+        // 不正解
+        } else {
+          $('#incorrect-icon').addClass('active');
+          $(`[data-status=${STATUS.CURRENT}]`).attr('data-incorrect', '');
+        }
+        // $(`[data-status=${STATUS.CURRENT}]`).toggleClass('bg-secondary');
+        // $(`[data-status=${STATUS.CURRENT}]`).addClass('bg-light');
+        $(`[data-status=${STATUS.CURRENT}]`).html(clickNote); // ?アイコンからクリックした音名テキストへ
+        $(`[data-status=${STATUS.CURRENT}]`).attr('data-status', STATUS.FINISHED);
+        $('#note-button-container').addClass('disabled');
+
+        nextQuestion();
+      });
+      // $('.fret-info').on('click', function(e) {
+      //   $(this).toggleClass('animated flash');
+      // });
+
+      $('#correct-icon, #incorrect-icon').on('transitionend', function(){
+        $(this).removeClass('active');
+        $('#note-button-container').removeClass('disabled');
+      });
+    });
+
+
+    // var routeNameArray = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+    // var addIntervalArray = ['△7', '7', 'm7','m7b5'];
+    // var codeNameArrayResult = _.reduce(routeNameArray, function(codeNameArray, routeName){
+    //    _.each(addIntervalArray, function(addIntervalElement) {
+    //     codeNameArray.push(routeName + addIntervalElement);
+    //    });
+    //    return codeNameArray; 
+    //   }, []);
+    // console.log(codeNameArrayResult);
+    // codeNameArrayResult = _.shuffle(codeNameArrayResult);
+
+    // var changeTimer;
+    // function start() {
+    //   change();
+    //   $('#codeName').addClass('active');
+    //   var seconds = $('#seconds').val();
+    //   $('#codeName.active').css('animation-duration', seconds + "s");
+    //   var ms = seconds * 1000;
+    //   changeTimer = setInterval(change, ms);
+    // }
+
+    // function change(){
+    //   // var codeNameClone = $('#codeName').clone();
+    //   var codeNameClone = $('#codeName');
+    //   // $('#codeName').remove();
+    //   var nextCodeName = codeNameArrayResult.pop();
+    //   if (codeNameArrayResult.length == 0) {
+    //     clearInterval(changeTimer);
+    //   }
+    //   codeNameClone.text(nextCodeName);
+    //   // codeNameClone.removeClass('active');
+    //   // codeNameClone.addClass('active');
+    //   // $('#codeNameArea').append(codeNameClone);
+    //   $('#finishedCodeList').prepend('<li>'+nextCodeName+'</li>');
+    // }
+  </script>
+</body>
+</html>
