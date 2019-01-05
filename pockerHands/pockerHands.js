@@ -1,4 +1,26 @@
 var Pocker = Pocker || {
+
+
+    /**
+     * 数字がもし記号に変換できるなら、変換する。
+     * カード番号 1⇒'A', 11⇒'J', 12⇒'Q', 13⇒'K'
+     */
+    ifNumberKigouConvert: function(number){
+        if(!number) return number;
+        var cardNumberResult = number;
+        var numberKigouArray = [
+            {'number': 1,  'kigou': 'A'},
+            {'number': 11, 'kigou': 'J'},
+            {'number': 12, 'kigou': 'Q'},
+            {'number': 13, 'kigou': 'K'}
+        ];
+        var numberKigou = _.find(numberKigouArray, function(numberKigou) { return numberKigou.number == number; })
+        if (numberKigou !== undefined) {
+            cardNumberResult = numberKigou.kigou;
+        }
+        return cardNumberResult;
+    },
+
     /**
      * カードを配る
      * @return {
@@ -212,73 +234,127 @@ var Pocker = Pocker || {
         };
         var isFourCard = function() {
             var sameFourCard = _.find(sameNumberArray, function(sameNumber){ return sameNumber.sum == 4});
-            return sameFourCard !== undefined;
+            var result = sameFourCard !== undefined;
+            return {
+                'result': result,
+                'handsName': 'フォーカード',
+                'handsCardArray': result? sameFourCard.cardArray : null,
+            };
         };
         var isFullHouse = function() {
             var sameThreeCard = _.find(sameNumberArray, function(sameNumber){ return sameNumber.sum == 3});
             var sameTwoCard = _.find(sameNumberArray, function(sameNumber){ return sameNumber.sum == 2});
-            return sameThreeCard !== undefined && sameTwoCard !== undefined;
+            var result = (sameThreeCard !== undefined && sameTwoCard !== undefined);
+            var handsCardArray = null;
+            if (result) handsCardArray = sameThreeCard.cardArray.concat(sameTwoCard.cardArray);
+            return {
+                'result': result,
+                'handsName': 'フルハウス',
+                'handsCardArray': handsCardArray
+            };
         };
         var isFlush = function() {
             var maxSameSuit = _.max(sameSuitArray, function(sameSuit){ return sameSuit.sum});
-            return maxSameSuit.sum >= 5;
+            var result = maxSameSuit.sum >= 5;
+            return {
+                'result': result,
+                'handsName': 'フラッシュ',
+                'handsCardArray': result? maxSameSuit.cardArray : null
+            };
         };
         var isStraight = function() {
             var straightCard = _.find(straightCountArray, function(straightCount){ return straightCount.straightCardCnt >= 5});
             console.debug('isStraight(): straightCard = %O', straightCard);
-            return straightCard !== undefined;
+            var result = straightCard !== undefined;
+            return {
+                'result': result,
+                'handsName': 'ストレート',
+                'handsCardArray': result? straightCard.straightCardArray : null
+            };
         };
         var isThreeCard = function() {
             var sameThreeCard = _.find(sameNumberArray, function(sameNumber){ return sameNumber.sum == 3});
-            return sameThreeCard !== undefined;
+            var result = sameThreeCard !== undefined;
+            return {
+                'result': result,
+                'handsName': 'スリーカード',
+                'handsCardArray': result? sameThreeCard.cardArray : null
+            };
         };
         var isTwoPair = function() {
             var sameTwoCardArray = _.filter(sameNumberArray, function(sameNumber){ return sameNumber.sum == 2});
-            return sameTwoCardArray.length >= 2;
+            var result = sameTwoCardArray.length >= 2;
+            var handsCardArray = null;
+            if (result) handsCardArray = sameTwoCardArray[0].cardArray.concat(sameTwoCardArray[1].cardArray);
+            return {
+                'result': result,
+                'handsName': 'ツーペア',
+                'handsCardArray': result? handsCardArray : null
+            };
         };
         var isOnePair = function() {
             var sameTwoCardArray = _.filter(sameNumberArray, function(sameNumber){ return sameNumber.sum == 2});
-            return sameTwoCardArray.length >= 1;
+            var result = sameTwoCardArray.length >= 1;
+            return {
+                'result': result,
+                'handsName': 'ワンペア',
+                'handsCardArray': (result? sameTwoCardArray[0].cardArray : null)
+            };
         };
-        var ighCard = function() {
-             _.max(allCards, function(card){ return card.number == 1? 14 : card.number; });
 
-
-            var sameTwoCardArray = _.filter(sameNumberArray, function(sameNumber){ return sameNumber.sum == 2});
-            return sameTwoCardArray.length >= 1;
-        };
+        var sameTwoCardArray = _.filter(sameNumberArray, function(sameNumber){ return sameNumber.sum == 2});
+        console.log('sameTwoCardArray: %O', sameTwoCardArray);
+        console.log('sameNumberArray: %O', sameNumberArray);
 
         var strongOrderArray = [
-            {'handsJudgeFunction': isStraightFlush, 'handsName': 'ストレートフラッシュ'},
-            {'handsJudgeFunction': isFourCard, 'handsName': 'フォーカード'},
-            {'handsJudgeFunction': isFullHouse, 'handsName': 'フルハウス'},
-            {'handsJudgeFunction': isFlush, 'handsName': 'フラッシュ'},
-            {'handsJudgeFunction': isStraight, 'handsName': 'ストレート'},
-            {'handsJudgeFunction': isThreeCard, 'handsName': 'スリーカード'},
-            {'handsJudgeFunction': isTwoPair, 'handsName': 'ツーペア'},
-            {'handsJudgeFunction': isOnePair, 'handsName': 'ワンペア'}
+            {'strongNum': 1, 'judgedHands': isStraightFlush},
+            {'strongNum': 2, 'judgedHands': isFourCard},
+            {'strongNum': 3, 'judgedHands': isFullHouse},
+            {'strongNum': 4, 'judgedHands': isFlush},
+            {'strongNum': 5, 'judgedHands': isStraight},
+            {'strongNum': 6, 'judgedHands': isThreeCard},
+            {'strongNum': 7, 'judgedHands': isTwoPair},
+            {'strongNum': 8, 'judgedHands': isOnePair}
         ];
+        // strongNumの昇順でソート ※JavaScriptでは配列での挿入順で取り出せるとは限らないため。
+        strongOrderArray = _.sortBy(strongOrderArray, function(strongOrder) { return strongOrder.strongNum; }); 
 
-        var judgedHands = _.find(strongOrderArray, function(strongOrder) {
-            return strongOrder.handsJudgeFunction();
+        var judgedHands = null;
+        _.some(strongOrderArray, function(strongOrder) {
+            var handsJudge = strongOrder.judgedHands();
+            if (handsJudge.result) {
+                judgedHands = handsJudge;
+                return true;
+            }
+            return false;
         });
+        console.log('judgedHands: %O', judgedHands);
 
-        if (judgedHands !== undefined) {
-            return judgedHands.handsName;
+        var handsName = null;
+        var cardArray = null;
+        if (judgedHands !== null) {
+            handsName = judgedHands.handsName;
+            cardArray = judgedHands.handsCardArray;
         } else {
             var getStrongestCardNumber = function() {
                 // 1(ace)は, 14として扱う。
                 return _.max(allCards, function(card){ return card.number == 1? 14 : card.number; });
             }
-            return '役なし（ハイカード） 一番強い数字は' + getStrongestCardNumber().number;
+            var cardNumber = Pocker.ifNumberKigouConvert(getStrongestCardNumber().number); // カード番号が1, 11, 12, 13の場合は記号に置き換える。
+            handsName = '役なし（ハイカード） 一番強い数字は' + cardNumber;
         }
+        return {
+            'handsName': handsName,
+            'cardArray': cardArray
+        };
     },
 
 
     outputCardArray: function(cardArray) {
         var cardsOutput = '';
         cardArray.forEach(function(card) {
-            cardStr = card.number + card.suit;
+            var cardNumber = Pocker.ifNumberKigouConvert(card.number); // カード番号が1, 11, 12, 13の場合は記号に置き換える。
+            cardStr = cardNumber + card.suit;
             var blackSuit = ['♠', '♣'];
             var redSuit   = ['♦', '♥'];
             var sameSuitFunction = function(suit) { return suit == card.suit; };

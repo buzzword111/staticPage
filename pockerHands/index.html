@@ -25,7 +25,9 @@ function render() {
     document.getElementById('hollCards').innerHTML = Pocker.outputCardArray(dealtCards.holeCards);
     document.getElementById('communityCards').innerHTML = Pocker.outputCardArray(dealtCards.communityCards);
     document.getElementById('allCards').innerHTML = Pocker.outputCardArray(dealtCards.allCards);
-    document.getElementById('judgedHands').innerHTML = judgedHands;
+    document.getElementById('judgedHands').innerHTML = judgedHands.handsName;
+    document.getElementById('handsCards').innerHTML = '　';
+    document.getElementById('handsCards').innerHTML = Pocker.outputCardArray(judgedHands.cardArray);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -54,6 +56,7 @@ function onClickReDealButton() {
         <div id="allCards" class="alert alert-secondary"></div>
         <h4>役</h4>
         <div style="font-weight: bold; font-size: 20px;" class="alert alert-warning"><span id="judgedHands"></span>です。</div>
+        <div id="handsCards" class="alert alert-secondary"></div>
         <button type="button" class="btn btn-primary" id="reDealButton" onclick="onClickReDealButton();">カードを配りなおす</button>
     </div>
 </body>

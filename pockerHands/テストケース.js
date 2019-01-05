@@ -27,3 +27,15 @@ dealtCards.allCards = [
   {"number": 8,"suit": "♠"},
   {"number": 10,"suit": "♥"}
 ]
+
+
+// ツーペア 正常系
+dealtCards.allCards = [
+  {"number": 1,"suit": "♠"},
+  {"number": 2,"suit": "♥"},
+  {"number": 7,"suit": "♥"},
+  {"number": 8,"suit": "♠"},
+  {"number": 8,"suit": "♦"},
+  {"number": 13,"suit": "♥"},
+  {"number": 13,"suit": "♦" }
+]
